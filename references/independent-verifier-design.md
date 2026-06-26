@@ -14,6 +14,18 @@ the repair path, not in the agent identity.
 
 ---
 
+## Startup Self-Check (mandatory)
+
+At the start of every verifier run, before checking delivery state:
+1. Verify your own cron job ID exists in the live runtime registry
+2. If missing → reinstate it immediately
+3. Verify all required lane jobs exist in live registry
+4. If any missing → reinstate them and log
+Only then proceed to delivery state check.
+A verifier that cannot confirm its own liveness is not independent — it is theoretical.
+
+---
+
 ## The Independence Test
 
 Before declaring any verifier complete, run this test:
