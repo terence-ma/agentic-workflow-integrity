@@ -130,6 +130,16 @@ If the answer is no, go upstream until you reach the earliest point.
 
 ---
 
+### Class 14: safety-net-not-instantiated
+**Pattern:** The independent verifier exists in code and spec but is not registered as a live cron in the runtime.
+**Detection:** Parity check shows expected supervisor job IDs have no run records.
+**Example:** brief_independent_supervisor cron id c1a7f6b5 exists in spec but not in live cron registry.
+**Repair:** Parity check must verify live registry matches spec before treating any safeguard as active.
+**Rule:** A safety net that is not live is not a safety net. Spec existence ≠ runtime existence.
+**Prevention:** Independent verifier startup must self-verify its own cron is registered. If not, register it and alert.
+
+---
+
 ## Repair Primitive Selection Matrix
 
 | Failure Class | Primary Repair | Layer |
