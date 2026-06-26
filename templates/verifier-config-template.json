@@ -1,0 +1,71 @@
+{
+  "_comment": "Verifier configuration template. Copy and fill in for each workflow.",
+
+  "workflow": "workflow-name",
+  "verifierScript": "{WORKSPACE}/scripts/{workflow}_verifier.py",
+  "workingDirectory": "{PRODUCTION_WORKING_DIRECTORY}",
+
+  "cron": {
+    "name": "{workflow}-independent-verifier",
+    "schedule": "45 7 * * *",
+    "sessionKey": "agent:{agent-id}:verifier:{workflow}",
+    "message": "Independent verifier for {workflow}. Check delivery state first. Do not re-run the main workflow to diagnose.",
+    "isolated": true,
+    "heartbeat": { "enabled": false }
+  },
+
+  "deliveryState": {
+    "dir": "{WORKSPACE}/state/{workflow}-delivery/",
+    "filePattern": "{date}-{slot}.json",
+    "deliveredCondition": {
+      "status": "sent",
+      "receiptProved": true
+    }
+  },
+
+  "fallbackInputs": {
+    "path": "{WORKSPACE}/state/last-known-good/",
+    "updateAfterDelivery": true,
+    "maxStaleHours": 48
+  },
+
+  "repairPrimitives": {
+    "_comment": "One entry per failure class. Each primitive must be self-contained.",
+    "import-path-failure": {
+      "function": "repair_import_path",
+      "callsMainWorkflow": false
+    },
+    "missing-artifact": {
+      "function": "repair_missing_artifact",
+      "callsMainWorkflow": false
+    },
+    "missing-attestation": {
+      "function": "repair_attestation",
+      "callsMainWorkflow": false
+    },
+    "send-failure": {
+      "function": "repair_send_failure",
+      "callsMainWorkflow": false
+    }
+  },
+
+  "fallbackChain": [
+    "primary-generation",
+    "cached-inputs",
+    "last-known-good",
+    "minimal-with-flag"
+  ],
+
+  "independence": {
+    "testProcedure": "Disable all main workflow crons. Inject failure. Verify verifier delivers.",
+    "lastTested": null,
+    "passed": false
+  },
+
+  "alerts": {
+    "_comment": "Alerts are informational only. Never 'I cannot proceed'. Always 'Delivered. Here is what was fixed.'",
+    "onSuccess": "Delivered {workflow} {slot} {date}. Repair used: {repairUsed}. Fallback: {fallbackUsed}.",
+    "onFallback": "Delivered {workflow} {slot} {date} using fallback inputs from {lkgDate}. Primary route was unavailable.",
+    "onEmergency": "Emergency delivery record written to {path}. All send channels failed. Manual review required."
+  }
+}
