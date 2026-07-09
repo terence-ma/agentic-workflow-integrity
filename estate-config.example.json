@@ -1,0 +1,116 @@
+{
+  "name": "Daily Brief Pipeline",
+  "version": "1.0",
+
+  "openclaw_sqlite": "/home/youruser/.openclaw/state/openclaw.sqlite",
+
+  "log_file": "/home/youruser/.openclaw/workspace/state/estate-integrity.log",
+
+  "search_roots": [
+    "/home/youruser/.openclaw/workspace/scripts",
+    "/home/youruser/.openclaw/workspace/state",
+    "/home/youruser/.openclaw/workspace-warren/briefs"
+  ],
+
+  "search_extensions": ["*.py", "*.json", "*.md", "*.sh", "*.txt"],
+
+  "_comment_anti_patterns": "Patterns that must never appear anywhere in the estate",
+  "anti_patterns": [
+    {
+      "pattern": "send-window-not-open",
+      "description": "Legacy send-window gate — delivery should check sentFiles not a window flag",
+      "exclude_if_in": []
+    },
+    {
+      "pattern": "wait-for-send-window",
+      "description": "Legacy send-window gate variant",
+      "exclude_if_in": []
+    },
+    {
+      "pattern": "sessionTarget.*isolated",
+      "description": "Isolated agentTurn on send/proof — broken tool hydration in OpenClaw 2026.5.18+",
+      "exclude_if_in": ["example", "archive", "disabled"]
+    }
+  ],
+
+  "_comment_crontab": "System crontab entries that must exist",
+  "expected_crontab": [
+    {
+      "expr": "45 7 * * 1-5",
+      "label": "Morning convergence wake (07:45 SGT weekdays)",
+      "must_contain": "openclaw"
+    },
+    {
+      "expr": "52 7 * * 1-5",
+      "label": "Morning watchdog (07:52 SGT weekdays)",
+      "must_contain": "openclaw"
+    },
+    {
+      "expr": "45 20 * * 1-5",
+      "label": "Evening convergence wake (20:45 SGT weekdays)",
+      "must_contain": "openclaw"
+    },
+    {
+      "expr": "52 20 * * 1-5",
+      "label": "Evening watchdog (20:52 SGT weekdays)",
+      "must_contain": "openclaw"
+    }
+  ],
+
+  "_comment_disabled": "OpenClaw cron jobs that must be disabled (legacy agentTurn send/proof jobs)",
+  "cron_must_be_disabled": [
+    "qin-morning-brief-independent-send-0752",
+    "qin-morning-brief-independent-proof-0758",
+    "qin-morning-brief-independent-send-0752-watchdog",
+    "qin-morning-brief-independent-proof-0758-watchdog",
+    "qin-evening-brief-final-send-checkpoint",
+    "qin-evening-brief-independent-proof-2054",
+    "qin-evening-brief-final-send-checkpoint-watchdog",
+    "qin-evening-brief-independent-proof-2054-watchdog"
+  ],
+
+  "_comment_enabled": "OpenClaw cron jobs that must be enabled",
+  "cron_must_be_enabled": [
+    {"name": "warren-scout-morning-brief-start"},
+    {"name": "warren-scout-evening-brief-start"}
+  ],
+
+  "_comment_files": "Files that must exist",
+  "required_files": [
+    {
+      "path": "/home/youruser/.openclaw/workspace/DAILY-BRIEF-SOURCE-OF-TRUTH.md",
+      "label": "Daily brief source of truth"
+    },
+    {
+      "path": "/home/youruser/.openclaw/workspace/scripts/converge_daily_brief_delivery.py",
+      "label": "Convergence delivery script"
+    }
+  ],
+
+  "_comment_sot": "Source-of-truth content checks",
+  "source_of_truth_checks": [
+    {
+      "path": "/home/youruser/.openclaw/workspace/DAILY-BRIEF-SOURCE-OF-TRUTH.md",
+      "label": "Daily brief SOT",
+      "must_contain": [
+        "openclaw agent --deliver",
+        "07:45",
+        "20:45"
+      ],
+      "must_not_contain": [
+        "send-window-not-open",
+        "wait-for-send-window",
+        "sessionTarget: isolated"
+      ]
+    }
+  ],
+
+  "_comment_custom": "Custom shell commands to run as checks",
+  "custom_checks": [
+    {
+      "label": "Gateway is running",
+      "command": "openclaw gateway status 2>&1 | grep -q running",
+      "expect_exit_code": 0
+    }
+  ]
+}

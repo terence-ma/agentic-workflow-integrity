@@ -1,34 +1,23 @@
 # agentic-workflow-integrity
 
-**A complete process integrity harness for AI agents.**
+A complete process integrity harness for AI agents.
 
-This skill gives AI agents (OpenClaw-based) a production-grade harness for making
-any workflow resilient, independently verified, and gap-enforced.
+This skill gives AI agents (OpenClaw-based) a production-grade harness for making any workflow resilient, independently verified, and gap-enforced.
 
-Built from operational experience running a multi-agent AI organisation where the
-same failure classes recurred across different agents, different workflows, and
-different failure surfaces. The common thread: agents were solving visible break
-points instead of the full recurrence path.
+Built from operational experience running a multi-agent AI organisation where the same failure classes recurred across different agents, different workflows, and different failure surfaces. The common thread: agents were solving visible break points instead of the full recurrence path.
 
 ---
 
 ## The Three Layers
 
-### Layer 1 — Process Resilience
-Systematically decompose any workflow from source to outcome. Identify every
-failure point. Wire proper fallbacks at each. No failure class should result in
-a stopped process — every failure has a repair path and a continuation.
+**Layer 1 — Process Resilience**
+Systematically decompose any workflow from source to outcome. Identify every failure point. Wire proper fallbacks at each. No failure class should result in a stopped process — every failure has a repair path and a continuation.
 
-### Layer 2 — Independent Verification
-Same agent, separate execution context (isolated cron). Fires outside the
-supervised process. Has its own repair primitives. Verifies the process ran
-correctly and intervenes directly if not. If the entire main workflow is broken,
-the verifier still fires, diagnoses, repairs, and delivers.
+**Layer 2 — Independent Verification**
+Same agent, separate execution context (isolated cron). Fires outside the supervised process. Has its own repair primitives. Verifies the process ran correctly and intervenes directly if not. If the entire main workflow is broken, the verifier still fires, diagnoses, repairs, and delivers.
 
-### Layer 3 — Gap Enforcement
-Ensures gaps identified during layers 1 and 2 are implemented, not left as
-findings. Gap identification and enforcement are the same atomic action.
-No gap stays a finding.
+**Layer 3 — Gap Enforcement**
+Ensures gaps identified during layers 1 and 2 are implemented, not left as findings. Gap identification and enforcement are the same atomic action. No gap stays a finding.
 
 ---
 
@@ -36,12 +25,12 @@ No gap stays a finding.
 
 AI agents running complex workflows have recurring failure patterns:
 
-- **Finding-not-action:** Gaps identified, named accurately, never implemented
-- **Wrong-layer fix:** Fix applied at checkpoint level when failure is upstream
-- **Observational gate:** Process stops on failure instead of repairing and continuing
-- **False completion:** Marked done without production-context verification
-- **Independent-path dependency:** "Independent" verifier depends on the broken process
-- **Acknowledgement drift:** Committed to fix, never executed
+- **Finding-not-action** — Gaps identified, named accurately, never implemented
+- **Wrong-layer fix** — Fix applied at checkpoint level when failure is upstream
+- **Observational gate** — Process stops on failure instead of repairing and continuing
+- **False completion** — Marked done without production-context verification
+- **Independent-path dependency** — "Independent" verifier depends on the broken process
+- **Acknowledgement drift** — Committed to fix, never executed
 
 This skill provides tooling, patterns, and enforced process to break these patterns.
 
@@ -59,7 +48,9 @@ agentic-workflow-integrity/
 │   ├── independent_verifier_template.py   # Template for workflow verifiers
 │   ├── commitment_watchdog.py             # Anti-drift watchdog for ETA commitments
 │   ├── process_decompose.py               # Scaffolds decomposition documents
-│   └── failure_injector.py               # Test harness for failure injection
+│   ├── failure_injector.py                # Test harness for failure injection
+│   ├── verify_estate.py                   # Generalised estate parity verifier
+│   └── estate-config.example.json        # Example config for verify_estate.py
 ├── references/
 │   ├── process-decomposition.md          # How to decompose any workflow
 │   ├── failure-modes.md                  # 13 failure class taxonomy
@@ -70,36 +61,6 @@ agentic-workflow-integrity/
     ├── workflow-spec-template.md          # Workflow specification template
     └── verifier-config-template.json     # Verifier configuration template
 ```
-
----
-
-## The Five Audit Questions
-
-Ask these for every workflow, in this order:
-
-1. **What is the first point where this workflow can fail?** (Start at source, not checkpoints)
-2. **For each step — what artifact must exist? Is that contract enforced with a fail-closed verifier, or only assumed?**
-3. **For each classifier/parser — is there a synthetic test for edge cases?**
-4. **For each failure mode — does failure route to repair or terminal stop? Who owns the repair?**
-5. **For each intervention path — have you tested it by injecting the actual failure?**
-
-Question 5 ("are the checkpoints wired?") is the last question, not the first. Starting at question 5 is why gaps are invisible.
-
----
-
-## The Closing Standard
-
-A task is done ONLY when ALL of these are true:
-
-1. The specific failure is fixed and tested
-2. The failure class is identified
-3. All other instances of the same failure class are found and fixed
-4. A failure-injection test exists that would have caught this before production
-5. The fix is verified from the actual production execution context — not a test harness
-6. The gap registry entry has `status: closed` with proof field populated
-7. The fix would have prevented the original incident if it had existed before it
-
-If the answer to #7 is no, you have fixed the symptom, not the problem.
 
 ---
 
@@ -135,30 +96,90 @@ See `references/components.md` for detailed installation steps.
 
 ---
 
+## The Five Audit Questions
+
+Ask these for every workflow, in this order:
+
+1. What is the first point where this workflow can fail? *(Start at source, not checkpoints)*
+2. For each step — what artifact must exist? Is that contract enforced with a fail-closed verifier, or only assumed?
+3. For each classifier/parser — is there a synthetic test for edge cases?
+4. For each failure mode — does failure route to repair or terminal stop? Who owns the repair?
+5. For each intervention path — have you tested it by injecting the actual failure?
+
+Question 5 ("are the checkpoints wired?") is the last question, not the first. Starting at question 5 is why gaps are invisible.
+
+---
+
+## The Closing Standard
+
+A task is done ONLY when ALL of these are true:
+
+1. The specific failure is fixed and tested
+2. The failure class is identified
+3. All other instances of the same failure class are found and fixed
+4. A failure-injection test exists that would have caught this before production
+5. The fix is verified from the actual production execution context — not a test harness
+6. The gap registry entry has `status: closed` with proof field populated
+7. The fix would have prevented the original incident if it had existed before it
+
+If the answer to #7 is no, you have fixed the symptom, not the problem.
+
+---
+
+## Estate Parity Verifier
+
+**`scripts/verify_estate.py`** — Config-driven script that checks your live OpenClaw agent estate matches your specification. Catches the gap between what you intended to implement and what is actually running.
+
+Checks automatically:
+- Anti-patterns grepped across the entire estate — forbidden flags, broken routing, deprecated fields
+- System crontab entries — verifies expected jobs are installed
+- OpenClaw SQLite — verifies cron jobs are enabled or disabled as specified, reading the live gateway state not JSON files
+- Required files — scripts and config files exist
+- Source-of-truth content — documentation contains required terms and is clean of forbidden ones
+- Custom shell checks — arbitrary verification commands
+
+```bash
+# Copy and edit the example config for your estate
+cp estate-config.example.json estate-config.json
+
+# Run immediately — PASS/FAIL with specific gaps
+python3 verify_estate.py
+
+# Schedule daily
+0 3 * * * /usr/bin/python3 /path/to/verify_estate.py --quiet --log /path/to/integrity.log
+```
+
+Exit code 0 = clean, 1 = gaps found. See `README_estate_verifier.md` for full documentation and config reference.
+
+> **Why SQLite, not jobs.json:** OpenClaw 2026.5+ stores cron job state in SQLite. The JSON file is legacy. This verifier reads SQLite directly so checks reflect the live gateway state — the exact mistake that caused hours of debugging when parity sweeps passed against the wrong surface.
+
+---
+
 ## Compatibility
 
 **Runtime:** OpenClaw (primary). Scripts are runtime-agnostic Python.
-The cron wake mechanism is OpenClaw-specific. For Paperclip-native agents,
-replace cron kicks with Paperclip todo issue assignment.
 
-**sessions_spawn:** Not required. All independent verification uses isolated
-crons. Works with `sessions_spawn` in the deny list.
+The cron wake mechanism is OpenClaw-specific. For Paperclip-native agents, replace cron kicks with Paperclip todo issue assignment.
+
+**`sessions_spawn`:** Not required. All independent verification uses isolated crons. Works with `sessions_spawn` in the deny list.
 
 ---
 
 ## Design Principles
 
-1. **Gap identification and enforcement are the same atomic action.** You cannot name a gap without enforcement beginning.
+- Gap identification and enforcement are the same atomic action. You cannot name a gap without enforcement beginning.
+- The independent verifier must not depend on the workflow it supervises. If the main lane is broken, the verifier still delivers.
+- Every gate must have a repair primitive. No stop-only gates. Every failure must have a path forward.
+- Production-context verification is the only valid verification. Test harness passes are not evidence.
+- A fallback deliverable is always better than no deliverable. If the canonical route cannot be repaired, use last-known-good inputs. Mark it as fallback. Send it.
+- Fix at the source layer, not the symptom layer. The most common error is applying fixes at checkpoints when the failure originates upstream.
 
-2. **The independent verifier must not depend on the workflow it supervises.** If the main lane is broken, the verifier still delivers.
+---
 
-3. **Every gate must have a repair primitive.** No stop-only gates. Every failure must have a path forward.
+## Related
 
-4. **Production-context verification is the only valid verification.** Test harness passes are not evidence.
-
-5. **A fallback deliverable is always better than no deliverable.** If the canonical route cannot be repaired, use last-known-good inputs. Mark it as fallback. Send it.
-
-6. **Fix at the source layer, not the symptom layer.** The most common error is applying fixes at checkpoints when the failure originates upstream.
+- [agent-brutus](https://github.com/terence-ma/agent-brutus) — adversarial pre-flight validator for agent plans
+- [clawconnect](https://github.com/terence-ma/clawconnect) — CLI and MCP bridge connectors for OpenClaw agents
 
 ---
 
